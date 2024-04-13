@@ -4,6 +4,16 @@ using System.Collections.Generic;
 using UnityEngine;
 using Synth;
 
+public struct PlayData
+{
+    public int cutoff;
+    //public float resonance;
+    public float attack;
+    public float decay;
+    public int tremoloFrequency;
+    public float tremoloAmplitude;
+}
+
 public class SynthPlayer : MonoBehaviour
 {
     [SerializeField]
@@ -25,18 +35,6 @@ public class SynthPlayer : MonoBehaviour
     };
 
     private List<int> activeNotes = new List<int>();
-
-    public struct PlayData
-    {
-        public int cutoff;
-        //public float resonance;
-        public float attack;
-        public float decay;
-        public float sustain;
-        public float release;
-
-        public float volume;
-    }
 
     private void Awake()
     {
@@ -74,6 +72,15 @@ public class SynthPlayer : MonoBehaviour
             }
         }
     }
+    
+    private void UpdateSynth(PlayData playData)
+    {
+        synth.Cutoff = playData.cutoff;
+        synth.Attack = playData.attack;
+        synth.Decay = playData.decay;
+        synth.TremoloFrequency = playData.tremoloFrequency;
+        synth.TremoloAmplitude = playData.tremoloAmplitude;
+    }
 
     // Mouse wobble
     public void SetWobble(int frequency, float amplitude)
@@ -85,24 +92,10 @@ public class SynthPlayer : MonoBehaviour
 
     public void Play(PlayData playData)
     {
-        // How many times a ray hit a wall minus some factor for escaping if it does
-        synth.FilterType = Synth.Filter.FilterType.LowPass;
-        synth.FilterEnable = true;
-        synth.Cutoff = playData.cutoff;
-
-        // Material, if i can find how to set it
-        //synth.Resonance
-
-        // Material
-        synth.Decay = playData.decay;
-        synth.Attack = playData.attack;
-        synth.Sustain = playData.sustain;
-        synth.Release = playData.release;
-
-        synth.Osc1Volume = playData.volume;
-
+       
         //Reverb here at some point
-
+        UpdateSynth(playData);
+        
         //Distortion too here at some point
 
         foreach (int note in activeNotes)
