@@ -1,13 +1,8 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Threading;
-using NAudio.CoreAudioApi;
-using NAudio.Wave;
-using NAudio.Wave.SampleProviders;
 using UnityEngine;
 using Synth;
-using Synth.Filter;
 
 public class SynthPlayer : MonoBehaviour
 {
