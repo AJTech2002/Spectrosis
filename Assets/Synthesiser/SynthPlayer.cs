@@ -37,8 +37,10 @@ public class SynthPlayer : MonoBehaviour
         //public float resonance;
         public float attack;
         public float decay;
-        public int tremoloFrequency;
-        public float tremoloAmplitude;
+        public float sustain;
+        public float release;
+
+        public float volume;
     }
 
     private void Awake()
@@ -64,8 +66,6 @@ public class SynthPlayer : MonoBehaviour
                         cutoff = 3000,
                         attack = 0.1f,
                         decay = 0.1f,
-                        tremoloFrequency = 5,
-                        tremoloAmplitude = 0.2f
                     });
                 }
             }
@@ -78,6 +78,14 @@ public class SynthPlayer : MonoBehaviour
                 activeNotes.Remove(x);
             }
         }
+    }
+
+    // Mouse wobble
+    public void SetWobble(int frequency, float amplitude)
+    {
+        synth.TremoloEnable = true;
+        synth.TremoloFrequency = frequency;
+        synth.TremoloAmplitude = amplitude;
     }
 
     public void Play(PlayData playData)
@@ -93,11 +101,10 @@ public class SynthPlayer : MonoBehaviour
         // Material
         synth.Decay = playData.decay;
         synth.Attack = playData.attack;
+        synth.Sustain = playData.sustain;
+        synth.Release = playData.release;
 
-        // Mouse wobble
-        synth.TremoloEnable = true;
-        synth.TremoloFrequency = playData.tremoloFrequency;
-        synth.TremoloAmplitude = playData.tremoloAmplitude;
+        synth.Osc1Volume = playData.volume;
 
         //Reverb here at some point
 
@@ -116,7 +123,6 @@ public class SynthPlayer : MonoBehaviour
             synth.NoteUp(note, note);
         }
     }
-
 
     private void OnDestroy()
     {
