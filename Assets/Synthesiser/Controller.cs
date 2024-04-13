@@ -142,7 +142,9 @@ namespace Synth {
 		private readonly TremoloModule tremoloModule;
 		private readonly DelayModule delayModule;
 		private readonly FilterModule filterModule;
-		//private readonly ReverbModule reverbModule;
+		public readonly VibratoModule vibratoModule;
+		public readonly ChorusModule chorusModule;
+		public readonly ReverbModule reverbModule;
 
 		private IWavePlayer player;
 
@@ -184,7 +186,9 @@ namespace Synth {
 			tremoloModule = new TremoloModule(distortionModule);
 			delayModule = new DelayModule(tremoloModule);
 			filterModule = new FilterModule(delayModule);
-			//reverbModule = new ReverbModule(filterModule);
+			chorusModule = new ChorusModule(filterModule);	
+			//vibratoModule = new VibratoModule(filterModule);
+			reverbModule = new ReverbModule(chorusModule);
 			mixerAll.AddMixerInput(volumeControl1);
 			mixerAll.AddMixerInput(volumeControl2);
 			SetScale(0, true);
@@ -252,7 +256,7 @@ namespace Synth {
 				return;
 			
 			player = new WaveOutEvent { NumberOfBuffers = 2, DesiredLatency = 100 };
-			player.Init(new SampleToWaveProvider(filterModule));
+			player.Init(new SampleToWaveProvider(reverbModule));
 			player.Play();
 		}
 

@@ -41,14 +41,22 @@ namespace Synth.Module {
 			lfo.Read(lfoBuffer, offset, count);
 
 			for (var i = 0; i < samples; i++)
-				if (lfo.Gain > 0.0f) 
+			{
+				//UnityEngine.Debug.Log(lfoBuffer[offset + i]);
+
+				if (lfo.Gain > 0.0f)
+				{
 					buffer[offset + i] += buffer[offset + i] * lfoBuffer[offset + i];
+				}
+			}
 
 			return samples;
 		}
 		
 		private void SetLFO() {
 			lfo = new SignalModule(SignalType.Sine, frequency, amplitude);
-		}
-	}
+            //UnityEngine.Debug.Log(amplitude + " reset");
+
+        }
+    }
 }
