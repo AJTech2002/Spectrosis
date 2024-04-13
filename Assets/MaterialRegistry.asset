@@ -14,32 +14,44 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   materials:
   - type: 0
+    color: {r: 0.36672306, g: 0.38392726, b: 0.38679248, a: 1}
     attack: 0.05
     decay: 0.1
     sustain: 0.8
     release: 2
     damping: 0.05
   - type: 1
+    color: {r: 0.34117648, g: 0.19765532, b: 0.03137254, a: 1}
     attack: 0.1
     decay: 0.1
     sustain: 0.5
     release: 0.2
     damping: 0.7
   - type: 2
+    color: {r: 0.9811321, g: 0.9302243, b: 0.9302243, a: 0.77254903}
     attack: 0.1
     decay: 0.1
     sustain: 0.8
     release: 3
     damping: 0.3
   - type: 3
+    color: {r: 0.5943396, g: 0.5943396, b: 0.5943396, a: 0.65882355}
     attack: 0.06
     decay: 0.05
     sustain: 0.2
     release: 0.03
     damping: 0.8
   - type: 4
+    color: {r: 1, g: 0.38510543, b: 0, a: 1}
     attack: 0.15
     decay: 0.2
     sustain: 0.9
     release: 1
     damping: 0.1
+  - type: 5
+    color: {r: 0, g: 0.81220484, b: 1, a: 1}
+    attack: 0
+    decay: 0
+    sustain: 0
+    release: 0
+    damping: 0

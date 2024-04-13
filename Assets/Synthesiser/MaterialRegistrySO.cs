@@ -12,13 +12,15 @@ public class MaterialRegistrySO : ScriptableObject
         Wood,
         Glass,
         Plastic,
-        Rubber
+        Rubber,
+        Mouth
     }
 
     [Serializable]
     public struct ObjectMaterial
     {
         public ObjectMaterialType type;
+        public Color color;
         public float attack;
         public float decay;
         public float sustain;
