@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using Shapes;
 using UnityEngine;
 
@@ -36,10 +37,21 @@ public class Drawing
 
 public class DrawingTool : MonoBehaviour
 {
+
+    [Header("Test Material")] 
+    public MaterialRegistrySO registry;
+    public MaterialRegistrySO.ObjectMaterial testMaterialStart;
+    
+     
     [Header("Properties of Interaction")]
     [SerializeField] private float drawingThreshold = 0.1f;
     [SerializeField] private float snappingThreshold = 0.5f;
-    [SerializeField] private float maxPluckDistance = 5f; 
+    [SerializeField] private float maxPluckDistance = 5f;
+
+    [Header("Audio Drivers")] public float tremoloFrequencyMax = 2f;
+
+    [Header("Visulisations")] public float tremologAmpMaxSin = 1f;
+    
     [Header("References")]
     [SerializeField] private Transform polyLinePrefab;
     [SerializeField] private Transform rayIntersectionTransform;
@@ -57,6 +69,8 @@ public class DrawingTool : MonoBehaviour
 
     private void Awake()
     {
+        testMaterialStart = registry.materials.First((m) => m.type == testMaterialStart.type);
+        
         drawing.lines = new List<Line>();
         orig_snappingThreshold = snappingThreshold;
     }
@@ -139,7 +153,14 @@ public class DrawingTool : MonoBehaviour
     private bool playingNote = false;
 
     private Vector3 initialDirection;
-   
+
+    private float lastAngle;
+    private float lastOscillationTime;
+
+    private float tremoloAmplitude;
+    private float tremoloFrequency;
+
+    [Header("Debug")] [SerializeField] private PlayData _playData;
     
     private void Update()
     {
@@ -185,7 +206,11 @@ public class DrawingTool : MonoBehaviour
             List<Hit> hits = new List<Hit>();
             // Play first note
 
-            rayCaster.CastRay(snappedWorldPosition, snappedWorldPosition - worldMousePosition(), drawing);
+            Hit lastHit = rayCaster.CastRay(snappedWorldPosition, snappedWorldPosition - worldMousePosition(), drawing, testMaterialStart);
+            
+            initialDirection = (worldMousePosition() - snappedWorldPosition).normalized;
+            
+            synthPlayer.Play(GetPlayData(lastHit, 0, 0f));
             
         }
         else if (Input.GetMouseButton(1))
@@ -209,27 +234,63 @@ public class DrawingTool : MonoBehaviour
             // snappedIntersectionDisc.transform.(worldMousePosition());
             
             snappedIntersectionDisc.right = worldMousePosition() - snappedWorldPosition;
-            initialDirection = (worldMousePosition() - snappedWorldPosition).normalized;
             
-            
-            
-            pluckLine.SetPoints(points, new List<Color>()
+            Vector3 direction = (worldMousePosition() - snappedWorldPosition).normalized;
+
+            if (Input.GetKey(KeyCode.LeftShift))
             {
-                Color.Lerp(Color.green, Color.red, Vector3.Distance(points[0], points[1]) / maxPluckDistance),
-                Color.Lerp(Color.green, Color.yellow, Vector3.Distance(points[0], points[1]) / maxPluckDistance),
+                float angle = Vector3.SignedAngle(initialDirection, direction, Vector3.forward);
 
-            });
+                if (Math.Sign(angle) != Math.Sign(lastAngle))
+                {
+                    tremoloFrequency = (1.0f - ( Mathf.Clamp((Time.time - lastOscillationTime), 0f, tremoloFrequencyMax) / tremoloFrequencyMax))*30.0f;
+                    
+                    lastOscillationTime = Time.time;
+                }
 
-            rayCaster.CastRay(snappedWorldPosition, snappedWorldPosition - worldMousePosition(), drawing);
+                lastAngle = angle;
 
+                tremoloAmplitude = Mathf.Clamp01(Mathf.Abs(angle) / 180);
+
+
+            }
             
+            
+            List<Vector3> points2 = new List<Vector3>();
+            List<Color> colors = new List<Color>();
+
+            Color aColor = Color.Lerp(Color.green, Color.red,
+                Vector3.Distance(points[0], points[1]) / maxPluckDistance);
+
+            Color bColor = Color.Lerp(Color.green, Color.yellow,
+                Vector3.Distance(points[0], points[1]) / maxPluckDistance);
+            
+            for (int i = 0; i < 20; i++)
+            {
+                float t = (float)i / 20.0f;
+                float val = Mathf.Sin(t * tremoloFrequency)*(Mathf.Clamp(tremoloAmplitude, 0f, tremologAmpMaxSin)/tremologAmpMaxSin);     
+                Vector3 point = Vector3.Lerp(worldMousePosition(), snappedWorldPosition, t) + new Vector3(val, val, 0);
+                Color col = Color.Lerp(aColor, bColor, t);
+                colors.Add(col);
+                points2.Add(point);
+            }
+            
+
+            pluckLine.SetPoints(points2,colors);
+
+            Hit hitInfo = rayCaster.CastRay(snappedWorldPosition, snappedWorldPosition - worldMousePosition(), drawing, testMaterialStart);
+            
+            Debug.Log("Tremolo : " + tremoloFrequency.ToString() + " " + tremoloAmplitude.ToString());
+
+            _playData = GetPlayData(hitInfo, Mathf.RoundToInt(tremoloFrequency), tremoloAmplitude);
+            synthPlayer.UpdateSynth(_playData);
             
         }
         else if (Input.GetMouseButtonUp(1))
         {
             snappingThreshold = orig_snappingThreshold;
             playingNote = false;
-
+            synthPlayer.Stop();
         }
         
 

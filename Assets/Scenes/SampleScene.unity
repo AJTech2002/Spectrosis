@@ -133,6 +133,7 @@ GameObject:
   m_Component:
   - component: {fileID: 164971733}
   - component: {fileID: 164971734}
+  - component: {fileID: 164971735}
   m_Layer: 0
   m_Name: Drawing
   m_TagString: Untagged
@@ -167,17 +168,43 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5fdf0e83e355246df91a22aaa44101dd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  registry: {fileID: 11400000, guid: 8bd5d9a4f4e0dd040bdbc2fe51b2eb0a, type: 2}
+  testMaterialStart:
+    type: 0
+    color: {r: 0, g: 0, b: 0, a: 0}
+    attack: 0
+    decay: 0
+    sustain: 0
+    release: 0
+    damping: 0
+    cutoff: 0
   drawingThreshold: 0.1
   snappingThreshold: 0.1
   maxPluckDistance: 2.5
+  tremoloFrequencyMax: 2
+  tremologAmpMaxSin: 1
   polyLinePrefab: {fileID: 3580410648182099875, guid: a05853e290f034b1fad721c86d925f7a, type: 3}
   rayIntersectionTransform: {fileID: 1125595888}
   rayIntersectionDisc: {fileID: 1125595887}
   snappedIntersectionDisc: {fileID: 549027194}
   pluckLine: {fileID: 1528027615}
   rayLine: {fileID: 0}
+  synthPlayer: {fileID: 0}
   drawing:
     lines: []
+--- !u!114 &164971735
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 164971732}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 165b90c383efa304e83d56af86f4cc45, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  debugImmidiatePlay: 0
 --- !u!1 &415997921
 GameObject:
   m_ObjectHideFlags: 0

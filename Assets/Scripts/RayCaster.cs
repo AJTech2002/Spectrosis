@@ -4,18 +4,6 @@ using System.Collections.Generic;
 using UnityEngine;
 
 [Serializable]
-public enum Material
-{
-    Wood,
-    Metal,
-    Plastic,
-    Glass,
-    String,
-    Rubber,
-    Sponge
-}
-
-[Serializable]
 public struct Hit
 {
     public float totalDistanceTravelled;
@@ -23,11 +11,8 @@ public struct Hit
     public float cutOff;
     public float attack;
     public float decay;
-    public float tremoloFrequency;
-    public float tremoloAmplitude;
     public Vector3 hitPoint;
     public float intensity;
-    public Material material;
 }
 
 [Serializable]
@@ -49,7 +34,6 @@ public class RayCaster
             return false;
 
         float denom = Vector3.Dot(lineNormal, rayDirection);
-        
         
         
         if (Mathf.Approximately(denom, 0))
@@ -83,12 +67,21 @@ public class RayCaster
         return normal;
     }
     
-    public List<Hit> CastRay (Vector3 origin, Vector3 directionNotNormalized, Drawing drawing)
+    public Hit CastRay (Vector3 origin, Vector3 directionNotNormalized, Drawing drawing, MaterialRegistrySO.ObjectMaterial initialMaterial)
     {
         float attackLength = directionNotNormalized.magnitude;
         Vector3 direction = directionNotNormalized.normalized;
         
-        List<Hit> hitPoints = new List<Hit>();
+        // List<Hit> hitPoints = new List<Hit>();
+
+        Hit hit = new Hit()
+        {
+            intensity = 1f,
+            cutOff = initialMaterial.cutoff,
+            attack = initialMaterial.attack,
+            decay = initialMaterial.decay,
+            hitPoint = origin,
+        };
         
         List<Line> lines = drawing.lines;
 
@@ -124,17 +117,14 @@ public class RayCaster
                             continue;
                         }
 
+                        Hit newHit = new Hit();
+                        newHit.hitPoint = intersection;
+                        newHit.intensity = 1;
 
-                        
-                        Hit hit = new Hit();
-                        hit.hitPoint = intersection;
-                        hit.intensity = 1;
-                        hit.material = Material.Wood;
-                        
                         lastDirection = (intersection- lastPoint).normalized;
                         normal = normalLine;
                         
-                        closestHitPoint = hit;
+                        closestHitPoint = newHit;
                        
                         foundAnIntersection = true;
                         
@@ -149,9 +139,9 @@ public class RayCaster
             
             if (foundAnIntersection)
             {
-                hitPoints.Add(closestHitPoint);
                 Debug.DrawLine(new Vector3(lastPoint.x, lastPoint.y, lastPoint.z), closestHitPoint.hitPoint, Color.Lerp( Color.magenta, Color.green, ((float)i/(float)iterations)));
                 lastPoint = closestHitPoint.hitPoint;
+               
                 continue;
             }
             else
@@ -171,7 +161,7 @@ public class RayCaster
             
         }
 
-        return hitPoints;
+        return hit;
 
     }
     

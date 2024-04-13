@@ -6,6 +6,7 @@ using UnityEngine;
 [CreateAssetMenu(fileName = "MaterialRegistry", menuName = "MaterialRegistry")]
 public class MaterialRegistrySO : ScriptableObject
 {
+    [System.Serializable]
     public enum ObjectMaterialType
     {
         Metal,
@@ -26,6 +27,7 @@ public class MaterialRegistrySO : ScriptableObject
         public float sustain;
         public float release;
         public float damping;
+        public float cutoff;
     }
 
     public List<ObjectMaterial> materials = new List<ObjectMaterial>();

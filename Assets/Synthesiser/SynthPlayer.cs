@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using Synth;
 
+[SerializeField]
 public struct PlayData
 {
     public int cutoff;
@@ -12,6 +13,8 @@ public struct PlayData
     public float decay;
     public int tremoloFrequency;
     public float tremoloAmplitude;
+    public float sustain;
+    public float release;
 }
 
 public class SynthPlayer : MonoBehaviour
@@ -73,11 +76,13 @@ public class SynthPlayer : MonoBehaviour
         }
     }
     
-    private void UpdateSynth(PlayData playData)
+    public void UpdateSynth(PlayData playData)
     {
         synth.Cutoff = playData.cutoff;
         synth.Attack = playData.attack;
         synth.Decay = playData.decay;
+        synth.Sustain = playData.sustain;
+        synth.Release = playData.release;
         synth.TremoloFrequency = playData.tremoloFrequency;
         synth.TremoloAmplitude = playData.tremoloAmplitude;
     }
