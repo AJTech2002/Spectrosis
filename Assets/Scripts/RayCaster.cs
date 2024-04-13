@@ -18,6 +18,13 @@ public enum Material
 [Serializable]
 public struct Hit
 {
+    public float totalDistanceTravelled;
+    public int hits;
+    public float cutOff;
+    public float attack;
+    public float decay;
+    public float tremoloFrequency;
+    public float tremoloAmplitude;
     public Vector3 hitPoint;
     public float intensity;
     public Material material;
@@ -26,6 +33,9 @@ public struct Hit
 [Serializable]
 public class RayCaster
 {
+
+     
+   
 
     
     public static bool RayIntersectsLine(Vector3 rayOrigin, Vector3 rayDirection, Vector3 lineStart, Vector3 lineEnd, Vector3 normal, out Vector3 intersection)
@@ -73,7 +83,7 @@ public class RayCaster
         return normal;
     }
     
-    public void CastRay (Vector3 origin, Vector3 directionNotNormalized, Drawing drawing)
+    public List<Hit> CastRay (Vector3 origin, Vector3 directionNotNormalized, Drawing drawing)
     {
         float attackLength = directionNotNormalized.magnitude;
         Vector3 direction = directionNotNormalized.normalized;
@@ -160,6 +170,8 @@ public class RayCaster
             }
             
         }
+
+        return hitPoints;
 
     }
     

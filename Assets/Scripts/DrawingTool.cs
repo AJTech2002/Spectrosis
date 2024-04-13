@@ -44,9 +44,10 @@ public class DrawingTool : MonoBehaviour
     [SerializeField] private Transform polyLinePrefab;
     [SerializeField] private Transform rayIntersectionTransform;
     [SerializeField] private Shapes.Disc rayIntersectionDisc;
-    [SerializeField] private Shapes.Disc snappedIntersectionDisc;
-    [SerializeField] private Shapes.Polyline pluckLine;
+    [SerializeField] private Transform snappedIntersectionDisc;
+    [SerializeField] private DashedLineDrawer pluckLine;
     [SerializeField] private Shapes.Polyline rayLine;
+    [SerializeField] private SynthPlayer synthPlayer;
     
     private bool mouseIsDown = false;
     
@@ -80,6 +81,18 @@ public class DrawingTool : MonoBehaviour
 
     private float orig_snappingThreshold;
  
+    public static PlayData GetPlayData(Hit lastHit, int tremoloFrequency, float tremoloAmplitude)
+    {
+        
+        return new PlayData
+        {
+            cutoff = Mathf.RoundToInt(lastHit.cutOff), // 100 - 8000
+            attack =  lastHit.attack, // 0.1 - 1
+            decay = lastHit.decay, // 0.1 - 1
+            tremoloFrequency = tremoloFrequency, // .5 - 20
+            tremoloAmplitude = tremoloAmplitude, // 0.1 - 1
+        };
+    }
     
     private void SnappedPoint(bool withThreshold = true)
     {
@@ -124,6 +137,9 @@ public class DrawingTool : MonoBehaviour
     private bool rightMouseButtonDown = false;
 
     private bool playingNote = false;
+
+    private Vector3 initialDirection;
+   
     
     private void Update()
     {
@@ -170,7 +186,7 @@ public class DrawingTool : MonoBehaviour
             // Play first note
 
             rayCaster.CastRay(snappedWorldPosition, snappedWorldPosition - worldMousePosition(), drawing);
-
+            
         }
         else if (Input.GetMouseButton(1))
         {
@@ -189,6 +205,13 @@ public class DrawingTool : MonoBehaviour
             snappedIntersectionDisc.transform.position = snappedWorldPosition;
             
             
+            // snappedIntersectionDisc.transform.rotation = Quaternion.LookRotation(worldMousePosition() - snappedIntersectionDisc.transform.position, snappedIntersectionDisc.transform.forward);
+            // snappedIntersectionDisc.transform.(worldMousePosition());
+            
+            snappedIntersectionDisc.right = worldMousePosition() - snappedWorldPosition;
+            initialDirection = (worldMousePosition() - snappedWorldPosition).normalized;
+            
+            
             
             pluckLine.SetPoints(points, new List<Color>()
             {
@@ -199,6 +222,8 @@ public class DrawingTool : MonoBehaviour
 
             rayCaster.CastRay(snappedWorldPosition, snappedWorldPosition - worldMousePosition(), drawing);
 
+            
+            
         }
         else if (Input.GetMouseButtonUp(1))
         {
