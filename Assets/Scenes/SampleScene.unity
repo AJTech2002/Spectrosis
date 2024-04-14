@@ -174,7 +174,7 @@ MonoBehaviour:
   maxPluckDistance: 10
   tremoloFrequencyMax: 200
   tremoloFrequencyVisualMax: 10
-  maxVol: 2
+  maxVol: 50.79
   tremologAmpMaxSin: 150
   tremoloAmpVisualMax: 15
   _materialManager: {fileID: 1886680549}
@@ -189,6 +189,42 @@ MonoBehaviour:
   tremoloDisc: {fileID: 1724620798}
   drawing:
     lines: []
+  lastPlayData:
+    cutoff: 0
+    attack: 0
+    decay: 0
+    tremoloFrequency: 0
+    tremoloAmplitude: 0
+    sustain: 0
+    release: 0
+    vol: 0
+    reverb: 0
+    octave: 0
+  lastHitData:
+    cameOutOfMouth: 0
+    totalDistanceTravelled: 0
+    hits: 0
+    cutOff: 0
+    attack: 0
+    sustain: 0
+    release: 0
+    decay: 0
+    hitPoint: {x: 0, y: 0, z: 0}
+    intensity: 0
+  outputVol: 0
+  shapeVolume: 0
+  tremoloFreq: 0
+  _playData:
+    cutoff: 0
+    attack: 0
+    decay: 0
+    tremoloFrequency: 0
+    tremoloAmplitude: 0
+    sustain: 0
+    release: 0
+    vol: 0
+    reverb: 0
+    octave: 0
 --- !u!114 &164971735
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1272,8 +1308,9 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1723950995}
+  - component: {fileID: 1723950996}
   m_Layer: 0
-  m_Name: GameObject
+  m_Name: Managers
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1294,6 +1331,19 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1723950996
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1723950994}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7c6bdaec725ebca4094fcbf1cb8bdd0d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  BPM: 120
 --- !u!1 &1724620795
 GameObject:
   m_ObjectHideFlags: 0

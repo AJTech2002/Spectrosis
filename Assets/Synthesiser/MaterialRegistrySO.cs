@@ -28,6 +28,7 @@ public class MaterialRegistrySO : ScriptableObject
         public float release;
         public float damping;
         public float cutoff;
+        public float chorus;
     }
 
     public List<ObjectMaterial> materials = new List<ObjectMaterial>();

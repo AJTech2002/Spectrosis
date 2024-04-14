@@ -17,6 +17,8 @@ public struct Hit
     public float decay;
     public Vector3 hitPoint;
     public float intensity; // IGNORE
+    public float chorus;
+    public float damping;
 }
 
 [Serializable]
@@ -155,7 +157,8 @@ public class RayCaster
                     hit.decay = (hit.decay + (closestLine.mat.decay )) / 2f;
                     hit.sustain = (hit.sustain + (closestLine.mat.sustain )) / 2f;
                     hit.release = (hit.release + (closestLine.mat.release )) / 2f;
-
+                    hit.chorus = (hit.chorus + (closestLine.mat.chorus )) / 2f;
+                    hit.damping = (hit.damping + (closestLine.mat.damping )) / 2f;
                     hit.hits += 1;
                     hit.totalDistanceTravelled += Vector3.Distance(lastPoint, closestHitPoint);
                     hit.cutOff = (hit.cutOff + (closestLine.mat.cutoff )) / 2f;

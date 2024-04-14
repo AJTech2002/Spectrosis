@@ -120,11 +120,11 @@ namespace Synth {
 			get => delayModule?.Mix ?? 0.5f;
 			set => delayModule.Mix = value;
 		}
-		public float Wet {
+		public float DelayWet {
 			get => delayModule?.OutputWet ?? 0.5f;
 			set => delayModule.OutputWet = value;
 		}
-		public float Dry {
+		public float DelayDry {
 			get => delayModule?.OutputDry ?? 0.5f;
 			set => delayModule.OutputDry = value;
 		}
@@ -145,6 +145,7 @@ namespace Synth {
 		public readonly VibratoModule vibratoModule;
 		public readonly ChorusModule chorusModule;
 		public readonly ReverbModule reverbModule;
+		
 
 		private IWavePlayer player;
 

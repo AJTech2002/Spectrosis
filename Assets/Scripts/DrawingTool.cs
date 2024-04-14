@@ -125,17 +125,22 @@ public class DrawingTool : MonoBehaviour
 
     public PlayData GetPlayData(Hit lastHit, int _tremoloFrequency, float vol, float volOfShape)
     {
-        
+        const float MAX_SHAPE_VOLUME = 10f;
+        const float MAX_REFLECTION_FACTOR = 5f;
         PlayData newData = new PlayData
         {
             cutoff = Mathf.RoundToInt(lastHit.cutOff), // 100 - 8000
-            attack =  lastHit.attack, // 0.1 - 1
+            attack = lastHit.attack, // 0.1 - 1
             decay = lastHit.decay, // 0.1 - 1
             release = lastHit.release,
             sustain = lastHit.sustain,
             tremoloFrequency = tremoloFrequency, // .5 - 20
             tremoloAmplitude = 5f, // 0.1 - 1
             vol = vol,
+            reverb = Mathf.RoundToInt(Mathf.Lerp(0, 0.8f, (lastHit.totalDistanceTravelled / lastHit.hits) / MAX_REFLECTION_FACTOR)) * (1 - lastHit.intensity),
+            octave = Mathf.RoundToInt(Mathf.Lerp(2, -2, volOfShape / MAX_SHAPE_VOLUME)),
+            chorus = lastHit.chorus,
+            damping = lastHit.damping
         };
 
         
@@ -147,6 +152,11 @@ public class DrawingTool : MonoBehaviour
         tremoloFreq = _tremoloFrequency;
         
         return newData;
+    }
+
+    float Remap(float s, float a1, float a2, float b1, float b2)
+    {
+        return b1 + (s - a1) * (b2 - b1) / (a2 - a1);
     }
 
     private Line snappingLine = null;
@@ -273,7 +283,7 @@ public class DrawingTool : MonoBehaviour
             
             initialDirection = (worldMousePosition() - snappedWorldPosition).normalized;
             
-            synthPlayer.Play(GetPlayData(lastHit, 0,  1f, 0f));
+            synthPlayer.Play();
             
         }
         else if (!IsMouseOverUI() &&Input.GetMouseButton(1))
