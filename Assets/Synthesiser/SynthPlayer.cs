@@ -5,14 +5,14 @@ using UnityEngine;
 using Synth;
 using Synth.Module;
 
-[SerializeField]
+[System.Serializable]
 public struct PlayData
 {
     public int cutoff;
     //public float resonance;
     public float attack;
     public float decay;
-    public int tremoloFrequency;
+    public float tremoloFrequency;
     public float tremoloAmplitude;
     public float sustain;
     public float release;
@@ -23,6 +23,10 @@ public class SynthPlayer : MonoBehaviour
 {
     [SerializeField]
     private bool debugImmidiatePlay;
+
+    //private bool arpeggiatorEnabled;
+    private uint arpeggiatorSpeed;
+    private int arpeggiatorIndex;
 
     private Controller synth;
 
@@ -48,6 +52,22 @@ public class SynthPlayer : MonoBehaviour
         synth.Osc1Waveform = Synth.Module.SignalType.Sine;
         synth.Dry = 0.2f;
         synth.Wet = 0.8f;
+
+/*        synth.reverbModule.RoomSize = 0.9f;
+        synth.reverbModule.Damping = 0.1f;
+        //synth.reverbModule.DryWet = 1;
+        synth.reverbModule.Enabled = false;
+        synth.chorusModule.Delay = 0.2f;
+        synth.chorusModule.Width = 0.2f;
+        synth.chorusModule.SweepRate = 0.5f;
+
+        synth.chorusModule.Enabled = false;
+
+        synth.TremoloAmplitude = 40f;
+        synth.TremoloFrequency = 10;
+        synth.TremoloEnable = false;*/
+
+        TimingGrid.OnBeat += OnBeat;
     }
 
     private void Update()
@@ -57,6 +77,7 @@ public class SynthPlayer : MonoBehaviour
             if (Input.GetKeyDown(keyboardKeys[x]))
             {
                 activeNotes.Add(x);
+                arpeggiatorIndex = 0;
                 if (debugImmidiatePlay)
                 {
                     Play(new PlayData
@@ -76,6 +97,8 @@ public class SynthPlayer : MonoBehaviour
                 activeNotes.Remove(x);
             }
         }
+
+        arpeggiatorSpeed += Input.mouseScrollDelta.y > 0 ? 1u : Input.mouseScrollDelta.y < 0 ? 0u : arpeggiatorSpeed;
     }
     
     public void UpdateSynth(PlayData playData, float delta)
@@ -85,13 +108,39 @@ public class SynthPlayer : MonoBehaviour
         synth.Cutoff = playData.cutoff;
         synth.Attack = playData.attack;
         synth.Decay = playData.decay;
-        synth.TremoloEnable = true;
+        synth.Sustain = 1;
+        synth.Release = 0.3f;
 
-        // synth.Sustain = playData.sustain;
-        // synth.Release = playData.release;
-        synth.TremoloFrequency = playData.tremoloFrequency;
-        synth.TremoloAmplitude = playData.tremoloAmplitude;
-   
+        // Debug.Log("SYNTH : " + synth.TremoloFrequency.ToString() + " VS " +  Mathf.RoundToInt(playData.tremoloFrequency).ToString());
+        //
+        // if (Mathf.Abs(synth.TremoloFrequency - Mathf.RoundToInt(playData.tremoloFrequency)) > 0.3)
+        // {
+        //     Debug.Log("Tremelo Set");
+        //     synth.TremoloFrequency = Mathf.RoundToInt(playData.tremoloFrequency);
+        // }
+        //
+        // synth.TremoloAmplitude = playData.tremoloAmplitude;
+    }
+
+    public void SetArpeggiatorSpeed(uint speed)
+    {
+        if (this.arpeggiatorSpeed == 0 && speed != 0)
+        {
+            arpeggiatorIndex = 0;
+        }
+        this.arpeggiatorSpeed = speed;
+    }
+
+    private void OnBeat(int beatNum)
+    {
+        if (beatNum - arpeggiatorSpeed < 0) return;
+        if (arpeggiatorSpeed != 0 && activeNotes.Count > 0)
+        {
+            synth.NoteUp(activeNotes[0] + arpeggiatorIndex, activeNotes[0] + arpeggiatorIndex);
+            arpeggiatorIndex = (arpeggiatorIndex + 2) % 8;
+            int noteIndex = activeNotes[0] + arpeggiatorIndex;
+            synth.NoteDown(noteIndex, noteIndex);
+        }
     }
 
     // Mouse wobble
@@ -104,7 +153,8 @@ public class SynthPlayer : MonoBehaviour
 
     public void Play(PlayData playData)
     {
-       
+        synth.TremoloEnable = true;
+
         //Reverb here at some point
         UpdateSynth(playData, 0f);
         

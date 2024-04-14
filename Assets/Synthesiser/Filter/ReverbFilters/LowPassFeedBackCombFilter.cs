@@ -1,4 +1,4 @@
-﻿/*using System;
+﻿using System;
 using NAudio.Wave;
 
 namespace NAudio_Synth
@@ -12,7 +12,7 @@ namespace NAudio_Synth
         private int _posl, _posr;
         private bool _left;
 
-        public LowPassFeedBackCombFilter(WaveEffect32 input, int delay, float f, float d, int stereoSpread)
+        public LowPassFeedBackCombFilter(WaveEffect32 input, int delay, float f, float d, int stereoSpread) : base(input)
         {
             _left = true;
 
@@ -21,9 +21,9 @@ namespace NAudio_Synth
             Damping = d;
 
             _xl = new float[delay];
-            _xr = new float[delay+stereoSpread];
+            _xr = new float[delay + stereoSpread];
             _yl = new float[delay];
-            _yr = new float[delay+stereoSpread];
+            _yr = new float[delay + stereoSpread];
         }
 
         public float Feedback { get; set; }
@@ -42,7 +42,6 @@ namespace NAudio_Synth
             }
         }
 
-        public WaveFormat WaveFormat => throw new NotImplementedException();
 
         // y[n] = (1 - d) * f * y[n-N] + d * y[n-1] - d * x[n-(N+1)] + x[n-N]
         public override float Apply(float sample)
@@ -67,18 +66,12 @@ namespace NAudio_Synth
                 _xr[_posr] = sample;
                 _yr[_posr] = yn;
 
-                _posr= (_posr + 1) % _xr.Length;
+                _posr = (_posr + 1) % _xr.Length;
             }
 
             _left = !_left;
 
             return yn;
         }
-
-        public int Read(float[] buffer, int offset, int count)
-        {
-            throw new NotImplementedException();
-        }
     }
 }
-*/

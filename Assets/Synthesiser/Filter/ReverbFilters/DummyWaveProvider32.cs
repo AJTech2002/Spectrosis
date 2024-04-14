@@ -3,7 +3,7 @@ using System;
 
 namespace NAudio_Synth
 {
-    public class DummyWaveProvider32 : WaveProvider32
+    public class DummyWaveProvider32 : WaveEffect32
     {
         private float[] _buffer;
 
@@ -30,6 +30,11 @@ namespace NAudio_Synth
                 buffer[offset + i] = _buffer[i];
 
             return sampleCount;
+        }
+
+        public override float Apply(float sample)
+        {
+            throw new NotImplementedException();
         }
     }
 }

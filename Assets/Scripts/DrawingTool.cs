@@ -9,6 +9,7 @@ using UnityEngine;
 [Serializable]
 public class Line
 {
+    public MaterialRegistrySO.ObjectMaterial mat;
     public List<Vector3> points = new List<Vector3>();
     private Polyline polyline;
     
@@ -24,6 +25,7 @@ public class Line
         
         points.Add(point);
         this.polyline.SetPoints(points);
+        this.polyline.Color = mat.color;
 
     }
 
@@ -33,29 +35,36 @@ public class Line
 public class Drawing
 {
     public List<Line> lines = new List<Line>();
+    
+    
 }
 
 public class DrawingTool : MonoBehaviour
 {
+    //
+    // [Header("Test Material")] 
+    // public MaterialRegistrySO registry;
+    // public MaterialRegistrySO.ObjectMaterial testMaterialStart;
+    //
 
-    [Header("Test Material")] 
-    public MaterialRegistrySO registry;
-    public MaterialRegistrySO.ObjectMaterial testMaterialStart;
-    
      
     [Header("Properties of Interaction")]
     [SerializeField] private float drawingThreshold = 0.1f;
     [SerializeField] private float snappingThreshold = 0.5f;
     [SerializeField] private float maxPluckDistance = 5f;
+    
 
     [Header("Audio Drivers")] public float tremoloFrequencyMax = 2f;
     public float tremoloFrequencyVisualMax;
+    public float maxVol = 2f;
     
 
     [Header("Visulisations")] public float tremologAmpMaxSin = 1f;
     public float tremoloAmpVisualMax;
     
     [Header("References")]
+    [SerializeField] private MaterialManager _materialManager;
+
     [SerializeField] private Transform polyLinePrefab;
     [SerializeField] private Transform rayIntersectionTransform;
     [SerializeField] private Shapes.Disc rayIntersectionDisc;
@@ -74,7 +83,7 @@ public class DrawingTool : MonoBehaviour
 
     private void Awake()
     {
-        testMaterialStart = registry.materials.First((m) => m.type == testMaterialStart.type);
+        // testMaterialStart = registry.materials.First((m) => m.type == testMaterialStart.type);
         
         drawing.lines = new List<Line>();
         orig_snappingThreshold = snappingThreshold;
@@ -106,24 +115,45 @@ public class DrawingTool : MonoBehaviour
     private bool foundSnappingPoint = false;
 
     private float orig_snappingThreshold;
- 
-    public static PlayData GetPlayData(Hit lastHit, int tremoloFrequency, float tremoloAmplitude, float vol)
+
+    [Header("Debugging")]
+    [SerializeField] private PlayData lastPlayData;
+    [SerializeField] private Hit lastHitData;
+    [SerializeField] private float outputVol;
+    [SerializeField] private float shapeVolume;
+    [SerializeField] private int tremoloFreq;
+
+    public PlayData GetPlayData(Hit lastHit, int _tremoloFrequency, float vol, float volOfShape)
     {
         
-        return new PlayData
+        PlayData newData = new PlayData
         {
             cutoff = Mathf.RoundToInt(lastHit.cutOff), // 100 - 8000
             attack =  lastHit.attack, // 0.1 - 1
             decay = lastHit.decay, // 0.1 - 1
+            release = lastHit.release,
+            sustain = lastHit.sustain,
             tremoloFrequency = tremoloFrequency, // .5 - 20
-            tremoloAmplitude = tremoloAmplitude, // 0.1 - 1
+            tremoloAmplitude = 5f, // 0.1 - 1
             vol = vol,
         };
+
+        
+        // Just for debugging so you can see the values in inspector realtime to debug 
+        lastPlayData = newData;
+        lastHitData = lastHit;
+        outputVol = vol;
+        shapeVolume = volOfShape;
+        tremoloFreq = _tremoloFrequency;
+        
+        return newData;
     }
-    
+
+    private Line snappingLine = null;
     private void SnappedPoint(bool withThreshold = true)
     {
         Vector3 closestPoint = Vector3.positiveInfinity;
+        Line closestLine = null;
         foundSnappingPoint = false;
 
         for (int l = 0; l < drawing.lines.Count; l++)
@@ -140,6 +170,7 @@ public class DrawingTool : MonoBehaviour
                 
                 if (Vector3.Distance(_closest, worldMousePosition()) < Vector3.Distance(closestPoint, worldMousePosition()))
                 {
+                    closestLine = line;
                     closestPoint = _closest;
                     snappedLineIndex = l;
                     snappedPointIndex = i;
@@ -148,6 +179,8 @@ public class DrawingTool : MonoBehaviour
             }
         }
 
+        snappingLine = closestLine;
+        
         if (withThreshold)
         {
             if (Vector3.Distance(closestPoint, worldMousePosition()) > snappingThreshold)
@@ -180,10 +213,15 @@ public class DrawingTool : MonoBehaviour
     private Vector3 startPlayingWorldPositionSnapped;
     private Vector3 startPlayingWorldMousePosition;
     
+    bool IsMouseOverUI()
+    {
+        return UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject();
+    }
+    
     private void Update()
     {
-        mouseIsDown = Input.GetMouseButton(0);
-        rightMouseButtonDown = Input.GetMouseButton(1);
+        mouseIsDown = !IsMouseOverUI() &&  Input.GetMouseButton(0);
+        rightMouseButtonDown = !IsMouseOverUI() && Input.GetMouseButton(1);
 
         if (!Input.GetKey(KeyCode.LeftControl)) mousePosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);
 
@@ -207,10 +245,9 @@ public class DrawingTool : MonoBehaviour
 
         snappedIntersectionDisc.gameObject.SetActive(foundSnappingPoint && rightMouseButtonDown);
         pluckLine.gameObject.SetActive(playingNote);
-        
-        
+        rayLine.gameObject.SetActive(rightMouseButtonDown);
 
-        if (Input.GetMouseButtonDown(1) && drawing.lines.Count > 0)
+        if (!IsMouseOverUI() && Input.GetMouseButtonDown(1) && drawing.lines.Count > 0)
         {
             mousePositions.Clear();
             int totalCount = 0;
@@ -228,15 +265,18 @@ public class DrawingTool : MonoBehaviour
             
             List<Hit> hits = new List<Hit>();
             // Play first note
+            
+            float percentage = Vector3.Distance(realWorldMousePosition(), snappedWorldPosition) / maxPluckDistance;
 
-            Hit lastHit = rayCaster.CastRay(snappedWorldPosition, snappedWorldPosition - worldMousePosition(), drawing, testMaterialStart);
+
+            Hit lastHit = rayCaster.CastRay(snappedWorldPosition, snappedWorldPosition - worldMousePosition(), drawing, snappingLine.mat, percentage * maxVol, rayLine);
             
             initialDirection = (worldMousePosition() - snappedWorldPosition).normalized;
             
-            synthPlayer.Play(GetPlayData(lastHit, 0, 0f, 1f));
+            synthPlayer.Play(GetPlayData(lastHit, 0,  1f, 0f));
             
         }
-        else if (Input.GetMouseButton(1))
+        else if (!IsMouseOverUI() &&Input.GetMouseButton(1))
         {
             
             if (!Input.GetKey(KeyCode.LeftShift) && !Input.GetKey(KeyCode.LeftControl)) SnappedPoint(true);
@@ -311,17 +351,16 @@ public class DrawingTool : MonoBehaviour
                 startPlayingWorldPositionSnapped = snappedWorldPosition;
             }
 
-            Hit hitInfo = rayCaster.CastRay(snappedWorldPosition, snappedWorldPosition - worldMousePosition(), drawing, testMaterialStart);
+            Hit hitInfo = rayCaster.CastRay(snappedWorldPosition, snappedWorldPosition - worldMousePosition(), drawing, snappingLine.mat,percentage * maxVol, rayLine);
             
-            Debug.Log("Tremolo : " + tremoloFrequency.ToString() + " " + tremoloAmplitude.ToString());
             
-            _playData = GetPlayData(hitInfo, Mathf.RoundToInt(tremoloFrequency), tremoloAmplitude, percentage);
+            _playData = GetPlayData(hitInfo, Mathf.RoundToInt(tremoloFrequency), percentage, (max-min).magnitude);
 
             synthPlayer.UpdateSynth(_playData, Time.deltaTime);
 
             
         }
-        else if (Input.GetMouseButtonUp(1))
+        else if (!IsMouseOverUI() && Input.GetMouseButtonUp(1))
         {
             snappingThreshold = orig_snappingThreshold;
             playingNote = false;
@@ -329,7 +368,7 @@ public class DrawingTool : MonoBehaviour
         }
         
 
-        if (Input.GetMouseButtonDown(0))
+        if (!IsMouseOverUI() && Input.GetMouseButtonDown(0))
         {
             // First Frame
             snappingThreshold = orig_snappingThreshold;
@@ -340,18 +379,20 @@ public class DrawingTool : MonoBehaviour
             lineCompleted = false;
             activeLine = new Line(polyLine.GetComponentInChildren<Polyline>());
             activeLine.points = new List<Vector3>();
-            
+            activeLine.mat = _materialManager.selectedMaterialItem._objectMaterial;
             drawing.lines.Add(activeLine);
 
             
         }
-        else if (Input.GetMouseButtonUp(0))
+        else if (!IsMouseOverUI() && Input.GetMouseButtonUp(0))
         {
         }
     }
 
     // Update is called once per frame
     private Vector2 lastInputPoint = Vector2.negativeInfinity;
+    private Vector2 min = Vector3.positiveInfinity;
+    private Vector2 max = Vector3.negativeInfinity;
     void FixedUpdate()
     {
         if (mouseIsDown && !lineCompleted)
@@ -361,6 +402,8 @@ public class DrawingTool : MonoBehaviour
             bool addPoint = (lastInputPoint == Vector2.negativeInfinity) || (Vector2.Distance(lastInputPoint, snappedWorldPosition) > drawingThreshold) ;
             if (addPoint) {
                 activeLine.AddPoint(point);
+                min = Vector3.Min(min, point);
+                max = Vector3.Max(max, point);
                 lastInputPoint = snappedWorldPosition;
             }
         }

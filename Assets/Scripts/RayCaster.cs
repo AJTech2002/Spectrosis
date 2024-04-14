@@ -1,18 +1,22 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using Shapes;
 using UnityEngine;
 
 [Serializable]
 public struct Hit
 {
+    public bool cameOutOfMouth;
     public float totalDistanceTravelled;
     public int hits;
     public float cutOff;
     public float attack;
+    public float sustain;
+    public float release;
     public float decay;
     public Vector3 hitPoint;
-    public float intensity;
+    public float intensity; // IGNORE
 }
 
 [Serializable]
@@ -67,19 +71,29 @@ public class RayCaster
         return normal;
     }
     
-    public Hit CastRay (Vector3 origin, Vector3 directionNotNormalized, Drawing drawing, MaterialRegistrySO.ObjectMaterial initialMaterial)
+    public Hit CastRay (Vector3 origin, Vector3 directionNotNormalized, Drawing drawing, MaterialRegistrySO.ObjectMaterial initialMaterial, float initialPower, Polyline rayLine = null)
     {
         float attackLength = directionNotNormalized.magnitude;
         Vector3 direction = directionNotNormalized.normalized;
         
         // List<Hit> hitPoints = new List<Hit>();
 
+        List<Vector3> points = new List<Vector3>();
+        List<Color> colors = new List<Color>();
+        
+        points.Add(origin);
+        colors.Add(Color.green);
+
         Hit hit = new Hit()
         {
-            intensity = 1f,
+            intensity = initialPower,
             cutOff = initialMaterial.cutoff,
             attack = initialMaterial.attack,
             decay = initialMaterial.decay,
+            sustain = initialMaterial.sustain,
+            release =  initialMaterial.release,
+            totalDistanceTravelled = 0,
+            hits = 1,
             hitPoint = origin,
         };
         
@@ -90,17 +104,15 @@ public class RayCaster
         Vector3 normal = Vector3.zero;
         Vector3 lastDirection = direction;
 
-        int iterations = 10;
+        int iterations = 100;
         
         // 50 Iterations
         for (int i = 0; i < iterations; i++)
         {
             bool foundAnIntersection = false;
 
-            Hit closestHitPoint = new Hit()
-            {
-                hitPoint =  Vector3.positiveInfinity,
-            };
+            Vector3 closestHitPoint = Vector3.positiveInfinity;
+            Line closestLine = null;
             
             foreach (var line in lines)
             {
@@ -112,19 +124,16 @@ public class RayCaster
                     Vector3 normalLine = CalculateNormalFromLine(lineStart, lineEnd);
                     if (RayIntersectsLine(lastPoint, direction, lineStart, lineEnd, normalLine, out intersection))
                     {
-                        if (Vector3.Distance(lastPoint, intersection) < 0.1f || Vector3.Distance(lastPoint, intersection) > Vector3.Distance(lastPoint, closestHitPoint.hitPoint))
+                        if (Vector3.Distance(lastPoint, intersection) < 0.1f || Vector3.Distance(lastPoint, intersection) > Vector3.Distance(lastPoint, closestHitPoint))
                         {
                             continue;
                         }
-
-                        Hit newHit = new Hit();
-                        newHit.hitPoint = intersection;
-                        newHit.intensity = 1;
-
+                        
                         lastDirection = (intersection- lastPoint).normalized;
                         normal = normalLine;
                         
-                        closestHitPoint = newHit;
+                        closestHitPoint = intersection;
+                        closestLine = line;
                        
                         foundAnIntersection = true;
                         
@@ -139,10 +148,59 @@ public class RayCaster
             
             if (foundAnIntersection)
             {
-                Debug.DrawLine(new Vector3(lastPoint.x, lastPoint.y, lastPoint.z), closestHitPoint.hitPoint, Color.Lerp( Color.magenta, Color.green, ((float)i/(float)iterations)));
-                lastPoint = closestHitPoint.hitPoint;
-               
-                continue;
+                if (hit.intensity > 0.05f && closestLine.mat.type != MaterialRegistrySO.ObjectMaterialType.Mouth)
+                {
+                    hit.intensity *= 1f - closestLine.mat.damping; // Dampen
+                    hit.attack = (hit.attack + (closestLine.mat.attack))/2f;
+                    hit.decay = (hit.decay + (closestLine.mat.decay )) / 2f;
+                    hit.sustain = (hit.sustain + (closestLine.mat.sustain )) / 2f;
+                    hit.release = (hit.release + (closestLine.mat.release )) / 2f;
+
+                    hit.hits += 1;
+                    hit.totalDistanceTravelled += Vector3.Distance(lastPoint, closestHitPoint);
+                    hit.cutOff = (hit.cutOff + (closestLine.mat.cutoff )) / 2f;
+                    
+                    // Add more property propogation here
+                    
+                    // Debug.DrawLine(new Vector3(lastPoint.x, lastPoint.y, lastPoint.z), closestHitPoint,
+                    //     Color.Lerp(Color.magenta, Color.green, hit.intensity));
+
+                    points.Add(closestHitPoint);
+                    colors.Add(Color.Lerp(new Color(1f, 0.0f, 1f, hit.intensity), Color.green, hit.intensity));
+                    
+                    
+                    lastPoint = closestHitPoint;
+
+                   
+
+                    continue;
+                }
+                else
+                {
+                    if (closestLine.mat.type == MaterialRegistrySO.ObjectMaterialType.Mouth)
+                    {
+
+                        points.Add(closestHitPoint + lastDirection * 5f);
+                        colors.Add(Color.yellow);
+                        hit.cameOutOfMouth = true;
+                    }
+
+                    if (rayLine) rayLine.SetPoints(points, colors);
+                    if (rayLine)
+
+                    for (int c = 0; c < rayLine.points.Count; c++)
+                    {
+                        rayLine.SetPointThickness(c, 0.4f);
+                    }
+
+                    if (closestLine.mat.type == MaterialRegistrySO.ObjectMaterialType.Mouth)
+                    {
+                        rayLine.SetPointThickness(points.Count-1, 3f);
+                    }
+                    
+                    break;
+                    
+                }
             }
             else
             {
@@ -151,8 +209,19 @@ public class RayCaster
                     direction = -direction;
                 }
                 
-                Debug.DrawRay(lastPoint, direction*100f, Color.yellow);
+                // Debug.DrawRay(lastPoint, direction*100f, Color.yellow);
 
+                points.Add(lastPoint);
+                colors.Add(Color.clear);
+                    
+                if (rayLine) rayLine.SetPoints(points, colors);
+                
+                if (rayLine)
+                for (int c = 0; c < rayLine.points.Count; c++)
+                {
+                    rayLine.SetPointThickness(c, 0.4f);
+                }
+                
                 if (i > 0)
                 {
                     break;
