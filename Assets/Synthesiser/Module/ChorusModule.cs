@@ -26,6 +26,8 @@ namespace Synth
 
         public bool Enabled { get; set; }
 
+        public float DryWet { get; set; } = 0.5f;
+
         public float SweepRate
         {
             get
@@ -104,7 +106,7 @@ namespace Synth
                 var delayedSample = _circularBuffer[emptyingPointer];
 
                 // Mix wet and dry signals, ensuring amplitude does not exceed +/-1.0...
-                buffer[offset + i] = (float)Math.Tanh(0.5f * inputSample + 0.5f * delayedSample);
+                buffer[offset + i] = (float)Math.Tanh((1 - DryWet) * inputSample + DryWet * delayedSample);
 
                 // Step the sweep...
                 _sweep += _step;

@@ -39,7 +39,6 @@ public class SynthPlayer : MonoBehaviour
         KeyCode.H,
         KeyCode.J,
         KeyCode.K,
-        KeyCode.L,
     };
 
     private List<int> activeKeys = new List<int>();
@@ -51,20 +50,17 @@ public class SynthPlayer : MonoBehaviour
         synth.Osc1Waveform = Synth.Module.SignalType.Sine;
         synth.Dry = 0.2f;
         synth.Wet = 0.8f;
+        synth.FilterEnable = true;
 
-/*        synth.reverbModule.RoomSize = 0.9f;
-        synth.reverbModule.Damping = 0.1f;
-        //synth.reverbModule.DryWet = 1;
-        synth.reverbModule.Enabled = false;
-        synth.chorusModule.Delay = 0.2f;
-        synth.chorusModule.Width = 0.2f;
-        synth.chorusModule.SweepRate = 0.5f;
+        synth.chorusModule.Delay = 0.1f;
+        synth.chorusModule.Width = 0.1f;
+        synth.chorusModule.SweepRate = 0.3f;
+        synth.chorusModule.DryWet = 0.1f;
 
-        synth.chorusModule.Enabled = false;
+        synth.chorusModule.Enabled = true;
+        synth.reverbModule.Enabled = true;
+        synth.TremoloEnable = true;
 
-        synth.TremoloAmplitude = 40f;
-        synth.TremoloFrequency = 10;
-        synth.TremoloEnable = false;*/
 
         TimingGrid.OnBeat += OnBeat;
     }
@@ -116,6 +112,7 @@ public class SynthPlayer : MonoBehaviour
         synth.Decay = playData.decay;
         synth.Sustain = 1;
         synth.Release = 0.3f;
+        synth.FilterType = playData.cutoff > 800f ? Synth.Filter.FilterType.HighPass : Synth.Filter.FilterType.LowPass;
         /*synth.TremoloFrequency = playData.tremoloFrequency;
         synth.TremoloAmplitude = playData.tremoloAmplitude;*/
     }
