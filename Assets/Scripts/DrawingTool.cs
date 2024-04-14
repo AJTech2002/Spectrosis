@@ -49,8 +49,11 @@ public class DrawingTool : MonoBehaviour
     [SerializeField] private float maxPluckDistance = 5f;
 
     [Header("Audio Drivers")] public float tremoloFrequencyMax = 2f;
+    public float tremoloFrequencyVisualMax;
+    
 
     [Header("Visulisations")] public float tremologAmpMaxSin = 1f;
+    public float tremoloAmpVisualMax;
     
     [Header("References")]
     [SerializeField] private Transform polyLinePrefab;
@@ -60,6 +63,8 @@ public class DrawingTool : MonoBehaviour
     [SerializeField] private DashedLineDrawer pluckLine;
     [SerializeField] private Shapes.Polyline rayLine;
     [SerializeField] private SynthPlayer synthPlayer;
+    [SerializeField] private TremoloCalculator tremoloCalculator;
+    [SerializeField] private Disc tremoloDisc;
     
     private bool mouseIsDown = false;
     
@@ -85,6 +90,13 @@ public class DrawingTool : MonoBehaviour
         return new Vector3(mousePosition.x, mousePosition.y, 0);
     }
 
+    private Vector3 realWorldMousePosition()
+    {
+        Vector3 mP = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+        mP.z = 0f;
+        return mP;
+    }
+
     private Vector3 snappedWorldPosition;
     
     
@@ -95,7 +107,7 @@ public class DrawingTool : MonoBehaviour
 
     private float orig_snappingThreshold;
  
-    public static PlayData GetPlayData(Hit lastHit, int tremoloFrequency, float tremoloAmplitude)
+    public static PlayData GetPlayData(Hit lastHit, int tremoloFrequency, float tremoloAmplitude, float vol)
     {
         
         return new PlayData
@@ -105,6 +117,7 @@ public class DrawingTool : MonoBehaviour
             decay = lastHit.decay, // 0.1 - 1
             tremoloFrequency = tremoloFrequency, // .5 - 20
             tremoloAmplitude = tremoloAmplitude, // 0.1 - 1
+            vol = vol,
         };
     }
     
@@ -161,14 +174,23 @@ public class DrawingTool : MonoBehaviour
     private float tremoloFrequency;
 
     [Header("Debug")] [SerializeField] private PlayData _playData;
+
+    private List<Vector3> mousePositions = new List<Vector3>();
+
+    private Vector3 startPlayingWorldPositionSnapped;
+    private Vector3 startPlayingWorldMousePosition;
     
     private void Update()
     {
         mouseIsDown = Input.GetMouseButton(0);
         rightMouseButtonDown = Input.GetMouseButton(1);
-        
-        mousePosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);
 
+        if (!Input.GetKey(KeyCode.LeftControl)) mousePosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+
+        tremoloDisc.gameObject.SetActive(Input.GetKey(KeyCode.LeftControl));
+        tremoloDisc.transform.position = snappedWorldPosition;
+        // tremoloDisc.transform.right = (mousePosition - snappedWorldPosition).normalized;
+        
         if (!playingNote) SnappedPoint(true);
         
         // Mouse Cursor
@@ -190,6 +212,7 @@ public class DrawingTool : MonoBehaviour
 
         if (Input.GetMouseButtonDown(1) && drawing.lines.Count > 0)
         {
+            mousePositions.Clear();
             int totalCount = 0;
             for (int i = 0; i < drawing.lines.Count; i++)
             {
@@ -210,13 +233,13 @@ public class DrawingTool : MonoBehaviour
             
             initialDirection = (worldMousePosition() - snappedWorldPosition).normalized;
             
-            synthPlayer.Play(GetPlayData(lastHit, 0, 0f));
+            synthPlayer.Play(GetPlayData(lastHit, 0, 0f, 1f));
             
         }
         else if (Input.GetMouseButton(1))
         {
             
-            if (!Input.GetKey(KeyCode.LeftShift)) SnappedPoint(true);
+            if (!Input.GetKey(KeyCode.LeftShift) && !Input.GetKey(KeyCode.LeftControl)) SnappedPoint(true);
 
             
             List<Vector3> points = new List<Vector3>()
@@ -225,7 +248,31 @@ public class DrawingTool : MonoBehaviour
                 snappedWorldPosition
             };
 
+            if (Input.GetKey(KeyCode.LeftControl))
+            {
+                tremoloDisc.transform.right = (worldMousePosition() - snappedWorldPosition).normalized;
+                tremoloDisc.AngRadiansStart = 0;
+                tremoloDisc.AngRadiansEnd = Vector3.SignedAngle(
+                    worldMousePosition() - snappedWorldPosition,
+                    realWorldMousePosition() - snappedWorldPosition,
+                    Vector3.forward
+                ) * Mathf.Deg2Rad;
 
+                tremoloDisc.Radius = (realWorldMousePosition() - snappedWorldPosition).magnitude;
+
+                tremoloFrequency = (Mathf.Abs(Vector3.SignedAngle(
+                    worldMousePosition() - snappedWorldPosition,
+                    realWorldMousePosition() - snappedWorldPosition,
+                    Vector3.forward
+                )) / 180f) * 10f;
+
+                tremoloAmplitude = 10f;
+            }
+            else
+            {
+                tremoloFrequency = 0f;
+                tremoloAmplitude = 0f;
+            }
             
             snappedIntersectionDisc.transform.position = snappedWorldPosition;
             
@@ -237,53 +284,41 @@ public class DrawingTool : MonoBehaviour
             
             Vector3 direction = (worldMousePosition() - snappedWorldPosition).normalized;
 
-            if (Input.GetKey(KeyCode.LeftShift))
-            {
-                float angle = Vector3.SignedAngle(initialDirection, direction, Vector3.forward);
-
-                if (Math.Sign(angle) != Math.Sign(lastAngle))
-                {
-                    tremoloFrequency = (1.0f - ( Mathf.Clamp((Time.time - lastOscillationTime), 0f, tremoloFrequencyMax) / tremoloFrequencyMax))*30.0f;
-                    
-                    lastOscillationTime = Time.time;
-                }
-
-                lastAngle = angle;
-
-                tremoloAmplitude = Mathf.Clamp01(Mathf.Abs(angle) / 180);
-
-
-            }
-            
-            
-            List<Vector3> points2 = new List<Vector3>();
             List<Color> colors = new List<Color>();
 
+            
+            
+            float percentage = Vector3.Distance(realWorldMousePosition(), points[1]) / maxPluckDistance;
+            
+            
             Color aColor = Color.Lerp(Color.green, Color.red,
-                Vector3.Distance(points[0], points[1]) / maxPluckDistance);
+                percentage);
 
             Color bColor = Color.Lerp(Color.green, Color.yellow,
-                Vector3.Distance(points[0], points[1]) / maxPluckDistance);
-            
-            for (int i = 0; i < 20; i++)
-            {
-                float t = (float)i / 20.0f;
-                float val = Mathf.Sin(t * tremoloFrequency)*(Mathf.Clamp(tremoloAmplitude, 0f, tremologAmpMaxSin)/tremologAmpMaxSin);     
-                Vector3 point = Vector3.Lerp(worldMousePosition(), snappedWorldPosition, t) + new Vector3(val, val, 0);
-                Color col = Color.Lerp(aColor, bColor, t);
-                colors.Add(col);
-                points2.Add(point);
-            }
-            
+                percentage);
 
-            pluckLine.SetPoints(points2,colors);
+        
+            colors.Add(aColor);
+            colors.Add(bColor);
+
+
+
+            pluckLine.SetPoints(points,colors);
+
+            if (Input.GetKeyDown(KeyCode.LeftShift))
+            {
+                startPlayingWorldMousePosition = worldMousePosition();
+                startPlayingWorldPositionSnapped = snappedWorldPosition;
+            }
 
             Hit hitInfo = rayCaster.CastRay(snappedWorldPosition, snappedWorldPosition - worldMousePosition(), drawing, testMaterialStart);
             
             Debug.Log("Tremolo : " + tremoloFrequency.ToString() + " " + tremoloAmplitude.ToString());
+            
+            _playData = GetPlayData(hitInfo, Mathf.RoundToInt(tremoloFrequency), tremoloAmplitude, percentage);
 
-            _playData = GetPlayData(hitInfo, Mathf.RoundToInt(tremoloFrequency), tremoloAmplitude);
-            synthPlayer.UpdateSynth(_playData);
+            synthPlayer.UpdateSynth(_playData, Time.deltaTime);
+
             
         }
         else if (Input.GetMouseButtonUp(1))

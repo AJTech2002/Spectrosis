@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using Synth;
+using Synth.Module;
 
 [SerializeField]
 public struct PlayData
@@ -15,6 +16,7 @@ public struct PlayData
     public float tremoloAmplitude;
     public float sustain;
     public float release;
+    public float vol;
 }
 
 public class SynthPlayer : MonoBehaviour
@@ -76,15 +78,20 @@ public class SynthPlayer : MonoBehaviour
         }
     }
     
-    public void UpdateSynth(PlayData playData)
+    public void UpdateSynth(PlayData playData, float delta)
     {
+        synth.Osc1Volume = playData.vol;
+        
         synth.Cutoff = playData.cutoff;
         synth.Attack = playData.attack;
         synth.Decay = playData.decay;
-        synth.Sustain = playData.sustain;
-        synth.Release = playData.release;
+        synth.TremoloEnable = true;
+
+        // synth.Sustain = playData.sustain;
+        // synth.Release = playData.release;
         synth.TremoloFrequency = playData.tremoloFrequency;
         synth.TremoloAmplitude = playData.tremoloAmplitude;
+   
     }
 
     // Mouse wobble
@@ -99,14 +106,20 @@ public class SynthPlayer : MonoBehaviour
     {
        
         //Reverb here at some point
-        UpdateSynth(playData);
+        UpdateSynth(playData, 0f);
         
         //Distortion too here at some point
 
+        if (activeNotes.Count == 0)
+        {
+            activeNotes.Add(0);
+        }
+       
         foreach (int note in activeNotes)
         {
             synth.NoteDown(note, note);
         }
+        
     }
 
     public void Stop()
