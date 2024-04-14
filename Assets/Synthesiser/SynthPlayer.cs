@@ -3,7 +3,9 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using Synth;
+using Synth.Module;
 
+[System.Serializable]
 public struct PlayData
 {
     public int cutoff;
@@ -12,6 +14,9 @@ public struct PlayData
     public float decay;
     public float tremoloFrequency;
     public float tremoloAmplitude;
+    public float sustain;
+    public float release;
+    public float vol;
 }
 
 public class SynthPlayer : MonoBehaviour
@@ -105,8 +110,10 @@ public class SynthPlayer : MonoBehaviour
         SetArpeggiatorSpeed(Input.mouseScrollDelta.y > 0 ? Mathf.Clamp(arpeggiatorSpeed + 1, 0, arpeggiatorBeatDivisions.Length - 1) : Input.mouseScrollDelta.y < 0 ? Mathf.Clamp(arpeggiatorSpeed - 1, 0, arpeggiatorBeatDivisions.Length - 1) : arpeggiatorSpeed);
     }
     
-    private void UpdateSynth(PlayData playData)
+    public void UpdateSynth(PlayData playData, float delta)
     {
+        synth.Osc1Volume = playData.vol;
+        
         synth.Cutoff = playData.cutoff;
         synth.Attack = playData.attack;
         synth.Decay = playData.decay;
@@ -115,6 +122,16 @@ public class SynthPlayer : MonoBehaviour
         synth.FilterType = playData.cutoff > 800f ? Synth.Filter.FilterType.HighPass : Synth.Filter.FilterType.LowPass;
         /*synth.TremoloFrequency = playData.tremoloFrequency;
         synth.TremoloAmplitude = playData.tremoloAmplitude;*/
+
+        // Debug.Log("SYNTH : " + synth.TremoloFrequency.ToString() + " VS " +  Mathf.RoundToInt(playData.tremoloFrequency).ToString());
+        //
+        // if (Mathf.Abs(synth.TremoloFrequency - Mathf.RoundToInt(playData.tremoloFrequency)) > 0.3)
+        // {
+        //     Debug.Log("Tremelo Set");
+        //     synth.TremoloFrequency = Mathf.RoundToInt(playData.tremoloFrequency);
+        // }
+        //
+        // synth.TremoloAmplitude = playData.tremoloAmplitude;
     }
 
     public void SetArpeggiatorSpeed(int speed)
@@ -168,9 +185,10 @@ public class SynthPlayer : MonoBehaviour
 
     public void Play(PlayData playData)
     {
-       
+        synth.TremoloEnable = true;
+
         //Reverb here at some point
-        UpdateSynth(playData);
+        UpdateSynth(playData, 0f);
         
         //Distortion too here at some point
 
@@ -178,6 +196,7 @@ public class SynthPlayer : MonoBehaviour
         {
             synth.NoteDown(note, note);
         }
+        
     }
 
     public void Stop()
