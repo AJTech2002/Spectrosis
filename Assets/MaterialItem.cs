@@ -5,6 +5,8 @@ using UnityEngine.UI;
 
 public class MaterialItem : MonoBehaviour
 {
+   public bool eraser;
+
    public MaterialRegistrySO.ObjectMaterial _objectMaterial;
    [SerializeField] private Transform selectedIndicator;
    [SerializeField] private TMPro.TextMeshProUGUI materialName;

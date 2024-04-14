@@ -11,7 +11,7 @@ public class Line
 {
     public MaterialRegistrySO.ObjectMaterial mat;
     public List<Vector3> points = new List<Vector3>();
-    private Polyline polyline;
+    public Polyline polyline;
     
     public Line (Polyline polyline)
     {
@@ -230,11 +230,18 @@ public class DrawingTool : MonoBehaviour
         // tremoloDisc.transform.right = (mousePosition - snappedWorldPosition).normalized;
         
         if (!playingNote) SnappedPoint(true);
+ 
         
         // Mouse Cursor
         
         if (mouseIsDown || rightMouseButtonDown) rayIntersectionDisc.Color = Color.green;
         else rayIntersectionDisc.Color = Color.red;
+
+        if (_materialManager.selectedMaterialItem == null)
+        {
+            SnappedPoint(false);
+            rayIntersectionDisc.Color = Color.black;
+        }
         
         if (playingNote) rayIntersectionDisc.Color = Color.cyan;
 
@@ -243,7 +250,7 @@ public class DrawingTool : MonoBehaviour
                 snappedWorldPosition, 20 * Time.deltaTime);
         else rayIntersectionTransform.transform.position = worldMousePosition();
 
-        snappedIntersectionDisc.gameObject.SetActive(foundSnappingPoint && rightMouseButtonDown);
+        snappedIntersectionDisc.gameObject.SetActive((foundSnappingPoint && rightMouseButtonDown) || _materialManager.selectedMaterialItem == null);
         pluckLine.gameObject.SetActive(playingNote);
         rayLine.gameObject.SetActive(rightMouseButtonDown);
 
@@ -374,21 +381,42 @@ public class DrawingTool : MonoBehaviour
             snappingThreshold = orig_snappingThreshold;
 
 
-            Transform polyLine = Transform.Instantiate(polyLinePrefab);
 
             lineCompleted = false;
-            activeLine = new Line(polyLine.GetComponentInChildren<Polyline>());
-            activeLine.points = new List<Vector3>();
-            activeLine.mat = _materialManager.selectedMaterialItem._objectMaterial;
-            drawing.lines.Add(activeLine);
 
+            if (_materialManager.selectedMaterialItem != null)
+            {
+                Transform polyLine = Transform.Instantiate(polyLinePrefab);
+                activeLine = new Line(polyLine.GetComponentInChildren<Polyline>());
+                activeLine.points = new List<Vector3>();
+                activeLine.mat = _materialManager.selectedMaterialItem._objectMaterial;
+                drawing.lines.Add(activeLine);
+                eraser = false;
+            }
+            else
+            {
+                
+                SnappedPoint(false);
             
+                if (snappingLine != null)
+                {
+                    drawing.lines.Remove(snappingLine);
+                    GameObject.Destroy(snappingLine.polyline.gameObject);
+
+                    
+                }
+                
+                activeLine = null;
+            }
+
+
         }
         else if (!IsMouseOverUI() && Input.GetMouseButtonUp(0))
         {
         }
     }
 
+    private bool eraser = false;
     // Update is called once per frame
     private Vector2 lastInputPoint = Vector2.negativeInfinity;
     private Vector2 min = Vector3.positiveInfinity;
@@ -400,12 +428,15 @@ public class DrawingTool : MonoBehaviour
             Vector3 point = snappedWorldPosition;
             
             bool addPoint = (lastInputPoint == Vector2.negativeInfinity) || (Vector2.Distance(lastInputPoint, snappedWorldPosition) > drawingThreshold) ;
-            if (addPoint) {
+            if (addPoint && activeLine != null) {
                 activeLine.AddPoint(point);
                 min = Vector3.Min(min, point);
                 max = Vector3.Max(max, point);
                 lastInputPoint = snappedWorldPosition;
             }
+
+            
+            
         }
 
 

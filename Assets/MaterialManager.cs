@@ -28,7 +28,9 @@ public class MaterialManager : MonoBehaviour
     {
         if (selectedMaterialItem != null) selectedMaterialItem.Deselect();
         item.Select();
-        selectedMaterialItem = item;
+
+        if (!item.eraser) selectedMaterialItem = item;
+        else selectedMaterialItem = null;
     }
     
 }
