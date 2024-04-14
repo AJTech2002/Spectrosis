@@ -19,9 +19,13 @@ public class SynthPlayer : MonoBehaviour
     [SerializeField]
     private bool debugImmidiatePlay;
 
-    //private bool arpeggiatorEnabled;
-    private uint arpeggiatorSpeed;
+    private int arpeggiatorSpeed;
     private int arpeggiatorIndex;
+    private int arpeggiatorRoot;
+
+    private readonly int[] arpeggiatorBeatDivisions = { 0, 2, 4, 16, 32 };
+
+    private readonly int[] arpeggiatorIntervals = { 0, 2, 4, 6 };
 
     private Controller synth;
 
@@ -38,7 +42,7 @@ public class SynthPlayer : MonoBehaviour
         KeyCode.L,
     };
 
-    private List<int> activeNotes = new List<int>();
+    private List<int> activeKeys = new List<int>();
 
     private void Awake()
     {
@@ -71,29 +75,38 @@ public class SynthPlayer : MonoBehaviour
         {
             if (Input.GetKeyDown(keyboardKeys[x]))
             {
-                activeNotes.Add(x);
+                if (!activeKeys.Contains(x))
+                    activeKeys.Add(x);
+
+                // Reset arpeggiator root
                 arpeggiatorIndex = 0;
+                arpeggiatorRoot = x;
+
                 if (debugImmidiatePlay)
                 {
-                    Play(new PlayData
-                    {
-                        cutoff = 3000,
-                        attack = 0.1f,
-                        decay = 0.1f,
-                    });
+                    synth.NoteDown(x, x);
                 }
             }
             else if (Input.GetKeyUp(keyboardKeys[x]))
             {
                 if (debugImmidiatePlay)
                 {
-                    Stop();
+                    synth.NoteUp(x, x);
                 }
-                activeNotes.Remove(x);
+
+                // If arpeggiator is active and the key being released is the root note, stop the arpeggiator
+                if (arpeggiatorSpeed != 0 && x == arpeggiatorRoot)
+                {
+                    for (int i = 0; i < 12; i++)
+                    {
+                        synth.NoteUp(i, i);
+                    }
+                }
+                activeKeys.Remove(x);
             }
         }
 
-        arpeggiatorSpeed += Input.mouseScrollDelta.y > 0 ? 1u : Input.mouseScrollDelta.y < 0 ? 0u : arpeggiatorSpeed;
+        SetArpeggiatorSpeed(Input.mouseScrollDelta.y > 0 ? Mathf.Clamp(arpeggiatorSpeed + 1, 0, arpeggiatorBeatDivisions.Length - 1) : Input.mouseScrollDelta.y < 0 ? Mathf.Clamp(arpeggiatorSpeed - 1, 0, arpeggiatorBeatDivisions.Length - 1) : arpeggiatorSpeed);
     }
     
     private void UpdateSynth(PlayData playData)
@@ -107,23 +120,43 @@ public class SynthPlayer : MonoBehaviour
         synth.TremoloAmplitude = playData.tremoloAmplitude;*/
     }
 
-    public void SetArpeggiatorSpeed(uint speed)
+    public void SetArpeggiatorSpeed(int speed)
     {
+        if (activeKeys.Count == 0) return;
+        //Arp started
         if (this.arpeggiatorSpeed == 0 && speed != 0)
         {
             arpeggiatorIndex = 0;
+            arpeggiatorRoot = activeKeys[0];
+        }
+        //Arp stopped
+        else if (this.arpeggiatorSpeed != 0 && speed == 0)
+        {
+            for (int x = 0; x < 12; x++) 
+            { 
+                synth.NoteUp(x, x); 
+            }
+
+            //If still holding go back to root note
+            if (activeKeys.Count > 0)
+            {
+                synth.NoteDown(arpeggiatorRoot, arpeggiatorRoot);
+            }
         }
         this.arpeggiatorSpeed = speed;
     }
 
-    private void OnBeat(int beatNum)
+    private void OnBeat(int beatDivision)
     {
-        if (beatNum - arpeggiatorSpeed < 0) return;
-        if (arpeggiatorSpeed != 0 && activeNotes.Count > 0)
+        if (arpeggiatorBeatDivisions[arpeggiatorSpeed] < beatDivision) return;
+        if (arpeggiatorSpeed != 0 && activeKeys.Count > 0)
         {
-            synth.NoteUp(activeNotes[0] + arpeggiatorIndex, activeNotes[0] + arpeggiatorIndex);
-            arpeggiatorIndex = (arpeggiatorIndex + 2) % 8;
-            int noteIndex = activeNotes[0] + arpeggiatorIndex;
+            int prevNoteIndex = arpeggiatorRoot + arpeggiatorIntervals[arpeggiatorIndex] >= 8 ? (arpeggiatorRoot + arpeggiatorIntervals[arpeggiatorIndex]) % 8 : arpeggiatorRoot + arpeggiatorIntervals[arpeggiatorIndex];
+            synth.NoteUp(prevNoteIndex, prevNoteIndex);
+
+            arpeggiatorIndex = arpeggiatorIndex >= arpeggiatorIntervals.Length - 1 ? 0 : arpeggiatorIndex + 1;
+            int noteIndex = arpeggiatorRoot + arpeggiatorIntervals[arpeggiatorIndex] >= 8 ? (arpeggiatorRoot + arpeggiatorIntervals[arpeggiatorIndex]) % 8 : arpeggiatorRoot + arpeggiatorIntervals[arpeggiatorIndex];
+
             synth.NoteDown(noteIndex, noteIndex);
         }
     }
@@ -144,7 +177,7 @@ public class SynthPlayer : MonoBehaviour
         
         //Distortion too here at some point
 
-        foreach (int note in activeNotes)
+        foreach (int note in activeKeys)
         {
             synth.NoteDown(note, note);
         }
@@ -152,7 +185,7 @@ public class SynthPlayer : MonoBehaviour
 
     public void Stop()
     {
-        foreach (int note in activeNotes)
+        foreach (int note in activeKeys)
         {
             synth.NoteUp(note, note);
         }

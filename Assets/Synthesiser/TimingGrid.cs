@@ -7,22 +7,48 @@ public class TimingGrid : MonoBehaviour
 {
     public float BPM = 120;
 
-    public int beatsPerBar = 4;
-    private int beatNum = 0;
+    private const int MIN_BEAT_DIVISION = 32;
+    private int beatNum = 1;
     public static event Action<int> OnBeat;
 
-    private IEnumerator Start()
+    private float timer;
+    private float interval;
+
+    private void Awake()
     {
-        while (true)
+        interval = 60f / BPM / MIN_BEAT_DIVISION;
+    }
+
+    private void Update()
+    {
+        timer += Time.deltaTime;
+        if (timer > interval)
         {
-            yield return new WaitForSeconds(60 / BPM / beatsPerBar);
+            timer -= interval;
             OnBeat?.Invoke(GetDivision(beatNum));
-            beatNum = (beatNum + 1) % beatsPerBar;
+            beatNum = beatNum == MIN_BEAT_DIVISION ? 1 : beatNum + 1;
         }
     }
 
     private int GetDivision(int beatNum)
     {
-        return beatNum * beatsPerBar;
+        if (beatNum % 16 == 0)
+            return 2;
+
+        if (beatNum % 8 == 0)
+            return 4;
+
+        if (beatNum % 4 == 0)
+            return 8;
+
+        if (beatNum % 2 == 0)
+            return 16;
+
+        return 32;
     }
+
+/*    public bool IsBeatEquivalent(int beatDivision, int currentDivision)
+    {
+        
+    }*/
 }
